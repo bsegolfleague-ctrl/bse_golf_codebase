@@ -1,128 +1,73 @@
-<!DOCTYPE html>
-
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Scorecard</title>
-<script src="https://cdn.tailwindcss.com"></script>
-
-<script type="module" src="config.js"></script>
-<style>
-.toast {
-  position: fixed; bottom: 20px; right: 20px;
-  background: #333; color: #fff; padding: 10px 20px;
-  border-radius: 5px; opacity: 0.9; z-index: 9999;
-  font-family: Arial, sans-serif;
-}
-.toast-success { background: green; }
-.toast-error { background: red; }
-.toast-info { background: #333; }
-</style>
-
+  <meta charset="utf-8" />
+  <title>BSE Golf – Submit Round</title>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col items-center p-4">
-<h1 class="text-3xl font-bold text-gray-800 mb-6">Scorecard</h1>
-<div class="w-full max-w-3xl overflow-x-auto bg-white p-4 rounded-2xl shadow-lg">
-<div id="scorecard"></div>
-</div>
-<button class="w-full max-w-3xl mt-4 py-4 text-white font-semibold text-lg rounded-xl bg-gradient-to-r from-green-500 to-teal-400 shadow-lg hover:scale-105 hover:shadow-xl transition-transform duration-300" id="saveBtn">
-    Save Round
-  </button>
-<script type="module">
-  import { addRoundDoc } from './config.js';
-    // Load setup info from setup.html
-    const setup = JSON.parse(localStorage.getItem("roundSetup"));
-    if (!setup || !setup.players || setup.players.length === 0) {
-      alert("No players selected. Redirecting to setup page.");
-      window.location.href = "setup.html";
-    }
+<body>
+  <h1>Submit Round</h1>
 
-    const holes = parseInt(setup.holes);
-    const container = document.getElementById("scorecard");
+  <form id="scoreForm">
+    <label>Player <input id="player" required /></label><br/>
+    <label>Course <input id="course" /></label><br/>
+    <label>Date <input id="date" type="date" /></label><br/><br/>
 
-    // Build table HTML
-    let html = `<table class="table-auto border-collapse w-full text-center text-sm min-w-max">
-      <thead>
-        <tr>
-          <th class="border p-2 bg-gray-100">Player</th>`;
-    for (let i = 1; i <= holes; i++) html += `<th class="border p-2 bg-gray-100">H${i}</th>`;
-    html += `<th class="border p-2 bg-gray-100">Total</th><th class="border p-2 bg-gray-100">To Par</th></tr></thead><tbody>`;
+    <div id="holes">
+      <!-- Provide 18 boxes by default; you can leave extras blank -->
+      <div>Holes (enter any number of holes, blanks are ignored)</div>
+      <div style="display:grid;grid-template-columns:repeat(6,70px);gap:8px;margin:8px 0;">
+        <!-- 1..18 -->
+        <input class="hole-input" placeholder="H1" type="number" min="1" />
+        <input class="hole-input" placeholder="H2" type="number" min="1" />
+        <input class="hole-input" placeholder="H3" type="number" min="1" />
+        <input class="hole-input" placeholder="H4" type="number" min="1" />
+        <input class="hole-input" placeholder="H5" type="number" min="1" />
+        <input class="hole-input" placeholder="H6" type="number" min="1" />
+        <input class="hole-input" placeholder="H7" type="number" min="1" />
+        <input class="hole-input" placeholder="H8" type="number" min="1" />
+        <input class="hole-input" placeholder="H9" type="number" min="1" />
+        <input class="hole-input" placeholder="H10" type="number" min="1" />
+        <input class="hole-input" placeholder="H11" type="number" min="1" />
+        <input class="hole-input" placeholder="H12" type="number" min="1" />
+        <input class="hole-input" placeholder="H13" type="number" min="1" />
+        <input class="hole-input" placeholder="H14" type="number" min="1" />
+        <input class="hole-input" placeholder="H15" type="number" min="1" />
+        <input class="hole-input" placeholder="H16" type="number" min="1" />
+        <input class="hole-input" placeholder="H17" type="number" min="1" />
+        <input class="hole-input" placeholder="H18" type="number" min="1" />
+      </div>
+    </div>
 
-    // Par row
-    html += `<tr class="bg-gray-50"><td class="border p-2 font-bold">Par</td>`;
-    for (let i = 1; i <= holes; i++) {
-      html += `<td class="border p-1">
-                 <input type="number" class="w-14 p-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-400 focus:outline-none par" data-hole="${i}">
-               </td>`;
-    }
-    html += `<td class="border">—</td><td class="border">—</td></tr>`;
+    <button type="submit">Save Round</button>
+    <div id="status" style="margin-top:10px;color:green;"></div>
+  </form>
 
-    // Player rows
-    setup.players.forEach(player => {
-      html += `<tr class="hover:bg-gray-50 transition-colors"><td class="border p-2 font-semibold">${player}</td>`;
-      for (let i = 1; i <= holes; i++) {
-        html += `<td class="border p-1">
-                  <input type="number" class="w-14 p-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-400 focus:outline-none score" data-player="${player}" data-hole="${i}">
-                 </td>`;
+  <script type="module">
+    import { addRound } from './config.js';
+
+    const form = document.getElementById('scoreForm');
+    const status = document.getElementById('status');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      status.textContent = 'Saving...';
+
+      const Player = document.getElementById('player').value.trim();
+      const Course = document.getElementById('course').value.trim();
+      const DateVal = document.getElementById('date').value; // yyyy-mm-dd or empty
+      const holes = [...document.querySelectorAll('.hole-input')]
+        .map(i => parseInt(i.value, 10))
+        .filter(n => !Number.isNaN(n));
+
+      try {
+        await addRound({ Player, Course, Date: DateVal || null, Holes: holes });
+        status.textContent = 'Saved ✔';
+        form.reset();
+      } catch (err) {
+        console.error(err);
+        status.style.color = 'red';
+        status.textContent = 'Failed to save';
       }
-      html += `<td class="border total" data-player="${player}">0</td>`;
-      html += `<td class="border toPar" data-player="${player}">0</td></tr>`;
-    });
-
-    html += `</tbody></table>`;
-    container.innerHTML = html;
-
-    // Live totals
-    function updateTotals() {
-      const pars = {};
-      document.querySelectorAll(".par").forEach(p => pars[p.dataset.hole] = parseInt(p.value) || 0);
-
-      setup.players.forEach(player => {
-        let total = 0, totalPar = 0;
-        document.querySelectorAll(`.score[data-player="${player}"]`).forEach(s => {
-          const score = parseInt(s.value) || 0;
-          total += score;
-          totalPar += pars[s.dataset.hole] || 0;
-        });
-        document.querySelector(`.total[data-player="${player}"]`).textContent = total;
-        document.querySelector(`.toPar[data-player="${player}"]`).textContent = totalPar ? total - totalPar : "";
-      });
-    }
-
-    document.addEventListener("input", e => {
-      if (e.target.classList.contains("score") || e.target.classList.contains("par")) updateTotals();
-    });
-
-    // Save to Firestore
-    document.getElementById("saveBtn").addEventListener("click", async () => {
-      const pars = {};
-      document.querySelectorAll(".par").forEach(p => pars[p.dataset.hole] = parseInt(p.value) || 0);
-
-      for (const player of setup.players) {
-        let payload = {
-          Date: new Date().toISOString().split("T")[0],
-          Course: setup.course,
-          Player: player
-        };
-        let total = 0, totalPar = 0;
-
-        for (let i = 1; i <= holes; i++) {
-          payload[`Par${i}`] = pars[i] || "";
-          const scoreInput = document.querySelector(`.score[data-player="${player}"][data-hole="${i}"]`);
-          const score = parseInt(scoreInput.value) || 0;
-          payload[`Score${i}`] = score || "";
-          total += score;
-          totalPar += pars[i] || 0;
-        }
-        payload.Total = total;
-        payload.ToPar = totalPar ? total - totalPar : "";
-
-        await addRoundDoc(payload);
-      }
-
-      alert("Round saved!");
-      window.location.href = "index.html";
     });
   </script>
 </body>
