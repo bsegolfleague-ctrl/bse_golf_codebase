@@ -29,4 +29,52 @@
       <button type="button" id="addPlayerBtn" class="bg-blue-600 text-white px-4 py-2 rounded mt-2 w-full">Add Player</button>
     </div>
 
-    <button class="bg-green-600 text-white px-4 py-2
+    <button class="bg-green-600 text-white px-4 py-2 rounded w-full mt-4">Next: Enter Pars</button>
+  </form>
+
+  <script>
+    // Load historical players from localStorage or default list
+    let historicalPlayers = JSON.parse(localStorage.getItem("players")) || ["Josh", "Mike", "Steve"];
+
+    function renderPlayers() {
+      const container = document.getElementById("playerList");
+      container.innerHTML = ""; // clear
+      historicalPlayers.forEach(player => {
+        const label = document.createElement("label");
+        label.className = "block mb-1";
+        label.innerHTML = `<input type="checkbox" name="players" value="${player}"> ${player}`;
+        container.appendChild(label);
+      });
+    }
+
+    document.getElementById("addPlayerBtn").addEventListener("click", () => {
+      const newPlayer = document.getElementById("newPlayer").value.trim();
+      if(newPlayer && !historicalPlayers.includes(newPlayer)) {
+        historicalPlayers.push(newPlayer);
+        localStorage.setItem("players", JSON.stringify(historicalPlayers));
+        renderPlayers();
+        document.getElementById("newPlayer").value = "";
+      }
+    });
+
+    renderPlayers();
+
+    // On form submit
+    document.getElementById("setupForm").addEventListener("submit", e => {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      const course = form.get("course");
+      const holes = form.get("holes");
+      const players = form.getAll("players");
+
+      if(players.length === 0) {
+        alert("Please select at least one player.");
+        return;
+      }
+
+      localStorage.setItem("roundSetup", JSON.stringify({ course, holes, players }));
+      window.location.href = "scorecard.html";
+    });
+  </script>
+</body>
+</html>
