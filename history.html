@@ -1,1 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>History</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="config.js"></script>
+</head>
+<body class="bg-white p-4">
+  <h1 class="text-2xl font-bold mb-4">Round History</h1>
+  <div id="history"></div>
+
+  <script>
+    fetch(APPS_SCRIPT_URL)
+      .then(res => res.json())
+      .then(data => {
+        data.sort((a,b) => new Date(b.Date) - new Date(a.Date));
+        const html = data.map(r => `
+          <div class="border rounded p-2 mb-2">
+            <p><strong>${r.Date}</strong> – ${r.Course} – ${r.Player}</p>
+            <p>Total: ${r.Total} (${r.ToPar >= 0 ? "+"+r.ToPar : r.ToPar})</p>
+          </div>
+        `).join("");
+        document.getElementById("history").innerHTML = html;
+      });
+  </script>
+</body>
+</html>
 
