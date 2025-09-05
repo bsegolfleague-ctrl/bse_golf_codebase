@@ -1,43 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Leaderboard – Indoor Golf League</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script defer src="config.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leaderboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="config.js"></script>
 </head>
-<body class="bg-gray-100 min-h-screen">
-<header class="p-4 bg-white shadow sticky top-0 z-10">
-<div class="max-w-xl mx-auto flex items-center gap-3">
-<a href="index.html" class="text-blue-600">← Home</a>
-<h1 class="text-xl font-bold">Leaderboard</h1>
-</div>
-</header>
+<body class="bg-white p-4">
+  <h1 class="text-2xl font-bold mb-4">Leaderboard</h1>
+  <table class="table-auto border-collapse w-full text-center text-sm">
+    <thead>
+      <tr><th class="border p-2">Player</th><th class="border p-2">Rounds</th><th class="border p-2">Avg Score</th><th class="border p-2">Avg ToPar</th><th class="border p-2">Best</th></tr>
+    </thead>
+    <tbody id="board"></tbody>
+  </table>
 
+  <script>
+    fetch(APPS_SCRIPT_URL)
+      .then(res => res.json())
+      .then(data => {
+        const players = {};
+        data.forEach(r => {
+          const p = r.Player;
+          if (!players[p]) players[p] = { rounds: 0, total: 0, totalToPar: 0, best: Infinity };
+          players[p].rounds++;
+          players[p].total += Number(r.Total);
+          players[p].totalToPar += Number(r.ToPar);
+          players[p].best = Math.min(players[p].best, Number(r.Total));
+        });
 
-<main class="p-4 max-w-xl mx-auto space-y-4">
-<div id="content" class="bg-white rounded-2xl p-4 shadow">
-<p class="text-gray-600">Loading…</p>
-</div>
-</main>
-
-
-<script>
-async function loadLeaderboard() {
-const container = document.getElementById('content');
-if (!window.CONFIG || !CONFIG.APPS_SCRIPT_URL) {
-container.innerHTML = '<p class="text-red-600">Missing config.js URL</p>';
-return;
-}
-try {
-const res = await fetch(CONFIG.APPS_SCRIPT_URL);
-const data = await res.json();
-if (!Array.isArray(data) || data.length === 0) {
-container.innerHTML = '<p class="text-gray-600">No scores yet.</p>';
-return;
-}
-// Aggregate
-const byPlayer = {};
-for (const r of data) {
-const player = r.Player || r.player || 'Unknown';
+        const rows = Object.entries(players).map(([name, stats]) => {
+          const avg = (stats.total / stats.rounds).toFixed(1);
+          const avgToPar = (stats.totalToPar / stats.rounds).toFixed(1);
+          return `<tr><td class="border p-2">${name}</td><td class="border p-2">${stats.rounds}</td><td class="border p-2">${avg}</td><td class="border p-2">${avgToPar}</td><td class="border p-2">${stats.best}</td></tr>`;
+        }).join("");
+        document.getElementById("board").innerHTML = rows;
+      });
+  </script>
+</body>
+</html>
