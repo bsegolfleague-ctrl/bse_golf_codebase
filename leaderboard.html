@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Leaderboard – Indoor Golf League</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script defer src="config.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+<header class="p-4 bg-white shadow sticky top-0 z-10">
+<div class="max-w-xl mx-auto flex items-center gap-3">
+<a href="index.html" class="text-blue-600">← Home</a>
+<h1 class="text-xl font-bold">Leaderboard</h1>
+</div>
+</header>
+
+
+<main class="p-4 max-w-xl mx-auto space-y-4">
+<div id="content" class="bg-white rounded-2xl p-4 shadow">
+<p class="text-gray-600">Loading…</p>
+</div>
+</main>
+
+
+<script>
+async function loadLeaderboard() {
+const container = document.getElementById('content');
+if (!window.CONFIG || !CONFIG.APPS_SCRIPT_URL) {
+container.innerHTML = '<p class="text-red-600">Missing config.js URL</p>';
+return;
+}
+try {
+const res = await fetch(CONFIG.APPS_SCRIPT_URL);
+const data = await res.json();
+if (!Array.isArray(data) || data.length === 0) {
+container.innerHTML = '<p class="text-gray-600">No scores yet.</p>';
+return;
+}
+// Aggregate
+const byPlayer = {};
+for (const r of data) {
+const player = r.Player || r.player || 'Unknown';
