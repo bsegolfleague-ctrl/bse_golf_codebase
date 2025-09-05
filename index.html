@@ -1,4 +1,14 @@
 <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Indoor Golf League</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script defer src="config.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+<header class="p-4 bg-white shadow sticky top-0 z-10">
 <h1 class="text-2xl font-bold text-center">🏌️ Indoor Golf League</h1>
 </header>
 
@@ -79,14 +89,4 @@ ${leaderboard.map((p, i) => `
 <span class="font-semibold">${p.avg.toFixed(1)}</span>
 </div>`).join('')}
 </div>`;
-} catch (err) {
-console.error(err);
-document.getElementById('stats').innerHTML = '<p class="text-center text-red-600">Could not load stats. Check your config.js URL.</p>';
-}
-}
-
-
-loadQuickStats();
-</script>
-</body>
 </html>
