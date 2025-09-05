@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbyLYEBMdSZwyVZxtDJobNrmh4UFgKwLbXJiPs3wDpe9ZvfFKuJK_G2fkq7mrTtVGzj4_g/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxTkg_UEZfQ1O_0kYvOgnyDPgSdjBvrTETbP2CjtaucqU5heJPJ1ap-cHZy4754ZDbkLw/exec";
 
 // Global compatibility alias
 const APPS_SCRIPT_URL = API_URL;
