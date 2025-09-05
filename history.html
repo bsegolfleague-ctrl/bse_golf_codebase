@@ -1,76 +1,82 @@
-<!DOCTYPE html>
-
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Round History</title>
-<script src="https://cdn.tailwindcss.com"></script>
-
-<script type="module" src="config.js"></script>
-<style>
-.toast {
-  position: fixed; bottom: 20px; right: 20px;
-  background: #333; color: #fff; padding: 10px 20px;
-  border-radius: 5px; opacity: 0.9; z-index: 9999;
-  font-family: Arial, sans-serif;
-}
-.toast-success { background: green; }
-.toast-error { background: red; }
-.toast-info { background: #333; }
-</style>
-
+  <meta charset="utf-8" />
+  <title>BSE Golf – Round History</title>
+  <style>
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 20px 0;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px 10px;
+      text-align: center;
+    }
+    th {
+      background: #f3f3f3;
+    }
+    .holes {
+      text-align: left;
+      font-size: 0.9em;
+      white-space: nowrap;
+    }
+  </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col items-center p-6">
-<h1 class="text-3xl font-bold text-gray-800 mb-6">Round History</h1>
-<div class="w-full max-w-4xl space-y-6" id="history"></div>
-<script type="module">
-  import { getRounds } from './config.js';
-    getRounds().then(data => {
-        const grouped = {};
-        data.forEach(r => {
-          const key = `${r.Date} | ${r.Course}`;
-          if(!grouped[key]) grouped[key] = [];
-          grouped[key].push(r);
-        });
+<body>
+  <h1>Round History</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>Course</th>
+        <th>Date</th>
+        <th>Total</th>
+        <th>Holes</th>
+      </tr>
+    </thead>
+    <tbody id="history-body"></tbody>
+  </table>
 
-        const sortedKeys = Object.keys(grouped).sort((a,b) => new Date(b.split(" | ")[0]) - new Date(a.split(" | ")[0]));
+  <script type="module">
+    import { getRounds } from './config.js';
 
-        const html = sortedKeys.map(key => {
-          const rounds = grouped[key];
-          const tableRows = rounds.map(r => {
-            const holeScores = [];
-            for(let i=1; i<=18; i++){
-              if(r[`Score${i}`] !== undefined && r[`Score${i}`] !== "") {
-                holeScores.push(`${r[`Score${i}`]} (${r[`Par${i}`] || "-"})`);
-              }
-            }
-            return `<tr class="hover:bg-gray-50 transition-colors">
-              <td class="border p-2 font-semibold">${r.Player}</td>
-              <td class="border p-2">${r.Total}</td>
-              <td class="border p-2">${r.ToPar >= 0 ? "+"+r.ToPar : r.ToPar}</td>
-              <td class="border p-2">${holeScores.join(" | ")}</td>
-            </tr>`;
-          }).join("");
+    const tbody = document.getElementById('history-body');
 
-          return `<div class="overflow-x-auto bg-white p-4 rounded-2xl shadow-lg">
-            <p class="font-bold mb-2 text-gray-700">${key}</p>
-            <table class="table-auto border-collapse w-full text-center text-sm min-w-max">
-              <thead>
-                <tr class="bg-gray-100 text-gray-700 font-semibold">
-                  <th class="border p-2">Player</th>
-                  <th class="border p-2">Total</th>
-                  <th class="border p-2">To Par</th>
-                  <th class="border p-2">Hole-by-Hole</th>
-                </tr>
-              </thead>
-              <tbody>${tableRows}</tbody>
-            </table>
-          </div>`;
-        }).join("");
+    function formatDate(d) {
+      if (!d) return '-';
+      const dt = new Date(d);
+      return dt.toLocaleDateString();
+    }
 
-        document.getElementById("history").innerHTML = html;
-      });
+    function render(rounds) {
+      tbody.innerHTML = '';
+      rounds.sort((a, b) => b.Date - a.Date); // newest first
+
+      for (const r of rounds) {
+        const tr = document.createElement('tr');
+        const holes = Array.isArray(r.Holes) ? r.Holes.join(', ') : '';
+        tr.innerHTML = `
+          <td>${r.Player || '-'}</td>
+          <td>${r.Course || '-'}</td>
+          <td>${formatDate(r.Date)}</td>
+          <td>${r.Total ?? '-'}</td>
+          <td class="holes">${holes}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    (async () => {
+      try {
+        const rounds = await getRounds();
+        render(rounds);
+      } catch (err) {
+        console.error('Failed to load history:', err);
+        tbody.innerHTML = `<tr><td colspan="5" style="color:red;">Error loading data</td></tr>`;
+      }
+    })();
   </script>
 </body>
 </html>
