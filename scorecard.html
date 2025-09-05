@@ -13,27 +13,32 @@
   <button id="saveBtn" class="bg-green-600 text-white px-4 py-2 rounded w-full mt-4">Save Round</button>
 
   <script>
+    // Load setup info from setup.html
     const setup = JSON.parse(localStorage.getItem("roundSetup"));
-    if (!setup) window.location.href = "setup.html";
+    if (!setup || !setup.players || setup.players.length === 0) {
+      alert("No players selected. Redirecting to setup page.");
+      window.location.href = "setup.html";
+    }
 
     const holes = parseInt(setup.holes);
     const container = document.getElementById("scorecard");
 
-    // Build table
+    // Build table HTML
     let html = `<table class="table-auto border-collapse w-full text-center text-sm">
-      <thead><tr><th class="border p-2">Player</th>`;
-    for (let i=1; i<=holes; i++) html += `<th class="border p-2">H${i}</th>`;
+      <thead>
+        <tr><th class="border p-2">Player</th>`;
+    for (let i = 1; i <= holes; i++) html += `<th class="border p-2">H${i}</th>`;
     html += `<th class="border p-2">Total</th><th class="border p-2">To Par</th></tr></thead><tbody>`;
 
     // Par row
     html += `<tr><td class="border p-2 font-bold">Par</td>`;
-    for (let i=1; i<=holes; i++) html += `<td class="border"><input type="number" class="w-12 p-1 border rounded par" data-hole="${i}" required></td>`;
+    for (let i = 1; i <= holes; i++) html += `<td class="border"><input type="number" class="w-12 p-1 border rounded par" data-hole="${i}" required></td>`;
     html += `<td class="border">—</td><td class="border">—</td></tr>`;
 
-    // Player rows
+    // Player rows (dynamic)
     setup.players.forEach(player => {
       html += `<tr><td class="border p-2 font-semibold">${player}</td>`;
-      for (let i=1; i<=holes; i++) {
+      for (let i = 1; i <= holes; i++) {
         html += `<td class="border"><input type="number" class="w-12 p-1 border rounded score" data-player="${player}" data-hole="${i}"></td>`;
       }
       html += `<td class="border total" data-player="${player}">0</td>`;
@@ -64,7 +69,7 @@
       if (e.target.classList.contains("score") || e.target.classList.contains("par")) updateTotals();
     });
 
-    // Save to Google Sheets
+    // Save round to Google Sheets
     document.getElementById("saveBtn").addEventListener("click", async () => {
       const pars = {};
       document.querySelectorAll(".par").forEach(p => pars[p.dataset.hole] = parseInt(p.value) || 0);
@@ -77,7 +82,7 @@
         };
         let total = 0, totalPar = 0;
 
-        for (let i=1; i<=holes; i++) {
+        for (let i = 1; i <= holes; i++) {
           payload[`Par${i}`] = pars[i] || "";
           const scoreInput = document.querySelector(`.score[data-player="${player}"][data-hole="${i}"]`);
           const score = parseInt(scoreInput.value) || 0;
@@ -94,6 +99,7 @@
           headers: { "Content-Type": "application/json" }
         });
       }
+
       alert("Round saved!");
       window.location.href = "index.html";
     });
