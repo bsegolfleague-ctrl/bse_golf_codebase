@@ -1,77 +1,53 @@
-<!DOCTYPE html>
-
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Leaderboard</title>
-<script src="https://cdn.tailwindcss.com"></script>
-
-<script type="module" src="config.js"></script>
-<style>
-.toast {
-  position: fixed; bottom: 20px; right: 20px;
-  background: #333; color: #fff; padding: 10px 20px;
-  border-radius: 5px; opacity: 0.9; z-index: 9999;
-  font-family: Arial, sans-serif;
-}
-.toast-success { background: green; }
-.toast-error { background: red; }
-.toast-info { background: #333; }
-</style>
-
+  <meta charset="utf-8" />
+  <title>BSE Golf – Leaderboard</title>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col items-center p-6">
-<h1 class="text-3xl font-bold text-gray-800 mb-6">Leaderboard</h1>
-<div class="w-full max-w-4xl overflow-x-auto bg-white p-4 rounded-2xl shadow-lg">
-<table class="table-auto border-collapse w-full text-center text-sm min-w-max">
-<thead>
-<tr class="bg-gray-100 text-gray-700 font-semibold">
-<th class="border p-2">Player</th>
-<th class="border p-2">Rounds</th>
-<th class="border p-2">Avg Score</th>
-<th class="border p-2">Avg ToPar</th>
-<th class="border p-2">Best Score</th>
-</tr>
-</thead>
-<tbody id="board"></tbody>
-</table>
-</div>
-<script type="module">
-  import { getRounds } from './config.js';
-    const historicalPlayers = JSON.parse(localStorage.getItem("players")) || [];
+<body>
+  <h1>Leaderboard</h1>
+  <table border="1" cellpadding="6" cellspacing="0">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Player</th>
+        <th>Average</th>
+        <th>Events</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody id="leaderboard-body"></tbody>
+  </table>
 
-    getRounds().then(data => {
-        const players = {};
+  <script type="module">
+    import { getRounds, computeLeaderboard } from './config.js';
 
-        historicalPlayers.forEach(p => {
-          players[p] = { rounds: 0, total: 0, totalToPar: 0, best: Infinity };
-        });
+    const tbody = document.getElementById('leaderboard-body');
 
-        data.forEach(r => {
-          const p = r.Player;
-          if(!players[p]) players[p] = { rounds: 0, total: 0, totalToPar: 0, best: Infinity };
-          players[p].rounds++;
-          players[p].total += Number(r.Total) || 0;
-          players[p].totalToPar += Number(r.ToPar) || 0;
-          players[p].best = Math.min(players[p].best, Number(r.Total) || Infinity);
-        });
+    function fmt(n) {
+      return (Math.round(n * 100) / 100).toFixed(2);
+    }
 
-        const rows = Object.entries(players).map(([name, stats]) => {
-          const avg = stats.rounds ? (stats.total / stats.rounds).toFixed(1) : "-";
-          const avgToPar = stats.rounds ? (stats.totalToPar / stats.rounds).toFixed(1) : "-";
-          const best = stats.best !== Infinity ? stats.best : "-";
-          return `<tr class="hover:bg-gray-50 transition-colors">
-            <td class="border p-2 font-semibold">${name}</td>
-            <td class="border p-2">${stats.rounds}</td>
-            <td class="border p-2">${avg}</td>
-            <td class="border p-2">${avgToPar}</td>
-            <td class="border p-2">${best}</td>
-          </tr>`;
-        }).join("");
-
-        document.getElementById("board").innerHTML = rows;
+    function render(data) {
+      tbody.innerHTML = '';
+      data.forEach((row, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${i + 1}</td>
+          <td>${row.Player}</td>
+          <td>${fmt(row.AverageScore)}</td>
+          <td>${row.EventsPlayed}</td>
+          <td>${row.TotalScore}</td>
+        `;
+        tbody.appendChild(tr);
       });
+    }
+
+    (async () => {
+      const rounds = await getRounds();
+      const lb = computeLeaderboard(rounds);
+      render(lb);
+    })();
   </script>
 </body>
 </html>
