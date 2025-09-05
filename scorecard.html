@@ -1,1 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scorecard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="config.js"></script>
+</head>
+<body class="bg-white p-4">
+  <h1 class="text-2xl font-bold mb-4">Scorecard</h1>
+  <div id="scorecard"></div>
+  <button id="saveBtn" class="bg-green-600 text-white px-4 py-2 rounded w-full mt-4">Save Round</button>
+
+  <script>
+    const setup = JSON.parse(localStorage.getItem("roundSetup"));
+    if (!setup) window.location.href = "setup.html";
+
+    const holes = parseInt(setup.holes);
+    const container = document.getElementById("scorecard");
+
+    // Build table
+    let html = `<table class="table-auto border-collapse w-full text-center text-sm">
+      <thead><tr><th class="border p-2">Player</th>`;
+    for (let i=1; i<=holes; i++) html += `<th class="border p-2">H${i}</th>`;
+    html += `<th class="border p-2">Total</th><th class="border p-2">To Par</th></tr></thead><tbody>`;
+
+    // Par row
+    html += `<tr><td class="border p-2 font-bold">Par</td>`;
+    for (let i=1; i<=holes; i++) html += `<td class="border"><input type="number" class="w-12 p-1 border rounded par" data-hole="${i}" required></td>`;
+    html += `<td class="border">—</td><td class="border">—</td></tr>`;
+
+    // Player rows
+    setup.players.forEach(player => {
+      html += `<tr><td class="border p-2 font-semibold">${player}</td>`;
+      for (let i=1; i<=holes; i++) {
+        html += `<td class="border"><input type="number" class="w-12 p-1 border rounded score" data-player="${player}" data-hole="${i}"></td>`;
+      }
+      html += `<td class="border total" data-player="${player}">0</td>`;
+      html += `<td class="border toPar" data-player="${player}">0</td></tr>`;
+    });
+
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+
+    // Update totals live
+    function updateTotals() {
+      const pars = {};
+      document.querySelectorAll(".par").forEach(p => pars[p.dataset.hole] = parseInt(p.value) || 0);
+
+      setup.players.forEach(player => {
+        let total = 0, totalPar = 0;
+        document.querySelectorAll(`.score[data-player="${player}"]`).forEach(s => {
+          const score = parseInt(s.value) || 0;
+          total += score;
+          totalPar += pars[s.dataset.hole] || 0;
+        });
+        document.querySelector(`.total[data-player="${player}"]`).textContent = total;
+        document.querySelector(`.toPar[data-player="${player}"]`).textContent = totalPar ? total - totalPar : "";
+      });
+    }
+
+    document.addEventListener("input", e => {
+      if (e.target.classList.contains("score") || e.target.classList.contains("par")) updateTotals();
+    });
+
+    // Save to Google Sheets
+    document.getElementById("saveBtn").addEventListener("click", async () => {
+      const pars = {};
+      document.querySelectorAll(".par").forEach(p => pars[p.dataset.hole] = parseInt(p.value) || 0);
+
+      for (const player of setup.players) {
+        let payload = {
+          Date: new Date().toISOString().split("T")[0],
+          Course: setup.course,
+          Player: player
+        };
+        let total = 0, totalPar = 0;
+
+        for (let i=1; i<=holes; i++) {
+          payload[`Par${i}`] = pars[i] || "";
+          const scoreInput = document.querySelector(`.score[data-player="${player}"][data-hole="${i}"]`);
+          const score = parseInt(scoreInput.value) || 0;
+          payload[`Score${i}`] = score || "";
+          total += score;
+          totalPar += pars[i] || 0;
+        }
+        payload.Total = total;
+        payload.ToPar = totalPar ? total - totalPar : "";
+
+        await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify(payload),
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+      alert("Round saved!");
+      window.location.href = "index.html";
+    });
+  </script>
+</body>
+</html>
 
