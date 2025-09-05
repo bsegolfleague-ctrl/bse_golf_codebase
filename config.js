@@ -1,6 +1,1 @@
-// Place this file in the root of your repo
-// 1) Deploy your Google Apps Script as a Web App
-// 2) Paste the Web App URL below
-
-const CONFIG = {
-APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbyvhU3qWTQYOsoX1yhVDM67aANTk9lJcKAJpPZ7hMvGv8VZ240OuHp34RzPrbywwIFhEg/exec'
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwn32CY8XLnczKiMPx2yH1E4HdjhBQgSrxb0wDoTLGn7JvzB8-OvsAveJaWtq8jJvvfjQ/exec";
