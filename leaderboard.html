@@ -1,52 +1,62 @@
+
 <!doctype html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>BSE Golf – Leaderboard</title>
+  <title>Leaderboard – BSE Golf</title>
+  <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-  <h1>Leaderboard</h1>
-  <table border="1" cellpadding="6" cellspacing="0">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Player</th>
-        <th>Average</th>
-        <th>Events</th>
-        <th>Total</th>
-      </tr>
-    </thead>
-    <tbody id="leaderboard-body"></tbody>
-  </table>
+  <div class="container">
+    <div class="card">
+      <h1>Leaderboard</h1>
+      <div id="wrap" class="table-wrap">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="background:#f3f4f6">
+              <th style="padding:10px;border-bottom:1px solid var(--line);text-align:left;">#</th>
+              <th style="padding:10px;border-bottom:1px solid var(--line);text-align:left;">Player</th>
+              <th style="padding:10px;border-bottom:1px solid var(--line);">Events</th>
+              <th style="padding:10px;border-bottom:1px solid var(--line);">Average</th>
+              <th style="padding:10px;border-bottom:1px solid var(--line);">Total</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="nav">
+        <a href="./index.html">Home</a>
+        <a href="./history.html">History</a>
+      </div>
+    </div>
+  </div>
 
   <script type="module">
     import { getRounds, computeLeaderboard } from './config.js';
+    const tbody = document.getElementById('tbody');
 
-    const tbody = document.getElementById('leaderboard-body');
-
-    function fmt(n) {
-      return (Math.round(n * 100) / 100).toFixed(2);
-    }
-
-    function render(data) {
-      tbody.innerHTML = '';
-      data.forEach((row, i) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${i + 1}</td>
-          <td>${row.Player}</td>
-          <td>${fmt(row.AverageScore)}</td>
-          <td>${row.EventsPlayed}</td>
-          <td>${row.TotalScore}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
+    function fmt(n){ return (Math.round(n*100)/100).toFixed(2); }
 
     (async () => {
-      const rounds = await getRounds();
-      const lb = computeLeaderboard(rounds);
-      render(lb);
+      try{
+        const rounds = await getRounds();
+        const rows = computeLeaderboard(rounds);
+        tbody.innerHTML = '';
+        rows.forEach((r,i)=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML = \`
+            <td style="padding:10px;border-bottom:1px solid var(--line);">\${i+1}</td>
+            <td style="padding:10px;border-bottom:1px solid var(--line);text-align:left;">\${r.Player}</td>
+            <td style="padding:10px;border-bottom:1px solid var(--line);">\${r.EventsPlayed}</td>
+            <td style="padding:10px;border-bottom:1px solid var(--line);">\${fmt(r.AverageScore)}</td>
+            <td style="padding:10px;border-bottom:1px solid var(--line);">\${r.TotalScore}</td>
+          \`;
+          tbody.appendChild(tr);
+        });
+      }catch(e){
+        console.error(e);
+        tbody.innerHTML = '<tr><td colspan="5" style="color:#b91c1c;padding:10px;">Failed to load leaderboard</td></tr>';
+      }
     })();
   </script>
 </body>

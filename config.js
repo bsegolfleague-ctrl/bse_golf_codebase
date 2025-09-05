@@ -1,9 +1,12 @@
-// config.js
-// Firebase + Firestore (browser, ES modules)
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// Your Firebase config (from Firebase Console)
+// config.js - Firebase + Firestore helpers (no Google Sheets)
+// Uses CDN ES modules so it works on GitHub Pages without bundling.
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { 
+  getFirestore, collection, addDoc, getDocs, setDoc, doc, serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// TODO: If you rotate keys later, update these values from Firebase Console.
 const firebaseConfig = {
   apiKey: "AIzaSyA8fRBeMT7KJm5gDUORTxo-BiV47RVLTek",
   authDomain: "bse-golf-league.firebaseapp.com",
@@ -16,66 +19,94 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-// Add a round; Holes is an array of numbers (length can be 9, 18, etc.)
-export async function addRound({ Player, Course, Date, Holes }) {
-  const holes = Array.isArray(Holes)
-    ? Holes.map(n => Number(n)).filter(n => !Number.isNaN(n))
-    : [];
-  const payload = {
-    Player: Player ?? "",
-    Course: Course ?? "",
-    Date: Date ? new Date(Date) : serverTimestamp(),
-    Holes: holes,
-    Total: holes.reduce((a, b) => a + b, 0)
-  };
-  await addDoc(collection(db, "rounds"), payload);
-}
-
-// Fetch all rounds and normalize shape
-export async function getRounds() {
-  const snap = await getDocs(collection(db, "rounds"));
-  const rows = [];
-  snap.forEach(doc => {
-    const d = doc.data();
-    const holes = Array.isArray(d.Holes) ? d.Holes : [];
-    const total = (typeof d.Total === "number" && !Number.isNaN(d.Total))
-      ? d.Total
-      : holes.reduce((a, b) => a + b, 0);
-    const date = d.Date?.toDate ? d.Date.toDate() : (d.Date ? new Date(d.Date) : null);
-    rows.push({
-      id: doc.id,
-      Player: d.Player || "",
-      Course: d.Course || "",
-      Date: date,
-      Holes: holes,
-      Total: total
-    });
-  });
-  return rows;
-}
-
-// Compute leaderboard from rounds
-export function computeLeaderboard(rounds) {
-  const byPlayer = new Map();
-  for (const r of rounds) {
-    if (!r.Player) continue;
-    if (!byPlayer.has(r.Player)) byPlayer.set(r.Player, { total: 0, count: 0 });
-    const p = byPlayer.get(r.Player);
-    p.total += Number(r.Total || 0);
-    p.count += 1;
-  }
+// ---- Players API ----
+export async function getPlayers() {
+  const snap = await getDocs(collection(db, "Players"));
   const out = [];
-  byPlayer.forEach((v, name) => {
-    out.push({
-      Player: name,
-      TotalScore: v.total,
-      AverageScore: v.count ? v.total / v.count : 0,
-      EventsPlayed: v.count
-    });
+  snap.forEach(d => {
+    const data = d.data();
+    out.push({ id: d.id, name: data.name });
   });
-  out.sort((a, b) => a.AverageScore - b.AverageScore);
+  // sort by name by default
+  out.sort((a,b) => a.name.localeCompare(b.name));
   return out;
 }
 
-// Optional: small debug handle in dev tools
-window._firebase = { app };
+export async function addPlayer(name) {
+  const trimmed = (name || "").trim();
+  if (!trimmed) throw new Error("Player name required");
+  // use name as doc id (stable), lowercased key to avoid dup casing
+  const key = trimmed.toLowerCase();
+  await setDoc(doc(db, "Players", key), {
+    name: trimmed,
+    createdAt: serverTimestamp()
+  }, { merge: true });
+  return { id: key, name: trimmed };
+}
+
+// ---- Rounds API ----
+export async function saveRound({ Course, DateValue, Holes, Par, Scores, Totals }) {
+  const payload = {
+    Course: Course || "",
+    Date: DateValue ? new Date(DateValue) : serverTimestamp(),
+    Holes: Number(Holes) || 0,
+    Par: Array.isArray(Par) ? Par.map(n => Number(n)) : [],
+    Scores,  // { name: number[] | [] }
+    Totals   // { name: number | "DNF" }
+  };
+  await addDoc(collection(db, "Rounds"), payload);
+  return true;
+}
+
+// Fetch all rounds
+export async function getRounds() {
+  const snap = await getDocs(collection(db, "Rounds"));
+  const out = [];
+  snap.forEach(d => {
+    const data = d.data();
+    // Normalize Date to JS Date
+    const dt = data.Date?.toDate ? data.Date.toDate() : (data.Date ? new Date(data.Date) : null);
+    out.push({
+      id: d.id,
+      Course: data.Course || "",
+      Date: dt,
+      Holes: Number(data.Holes) || 0,
+      Par: Array.isArray(data.Par) ? data.Par : [],
+      Scores: data.Scores || {},
+      Totals: data.Totals || {}
+    });
+  });
+  // newest first
+  out.sort((a,b) => (b.Date?.getTime?.()||0) - (a.Date?.getTime?.()||0));
+  return out;
+}
+
+// Leaderboard calculation: average of numeric totals only; DNFs are ignored
+export function computeLeaderboard(rounds) {
+  const map = new Map(); // name -> { total: number, count: number }
+  for (const r of rounds) {
+    const totals = r.Totals || {};
+    for (const [name, val] of Object.entries(totals)) {
+      if (typeof val === "number" && !Number.isNaN(val)) {
+        if (!map.has(name)) map.set(name, { total: 0, count: 0 });
+        const s = map.get(name);
+        s.total += val;
+        s.count += 1;
+      }
+    }
+  }
+  const rows = [];
+  for (const [name, { total, count }] of map.entries()) {
+    rows.push({
+      Player: name,
+      TotalScore: total,
+      EventsPlayed: count,
+      AverageScore: count ? total / count : 0
+    });
+  }
+  rows.sort((a,b) => a.AverageScore - b.AverageScore);
+  return rows;
+}
+
+// Small debug handle
+window._bse = { app };

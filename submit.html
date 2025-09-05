@@ -1,89 +1,208 @@
-<!DOCTYPE html>
 
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1" name="viewport"/>
-<title>Submit Score – Indoor Golf League</title>
-<script src="https://cdn.tailwindcss.com"></script>
-
-<script type="module" src="config.js"></script>
-<style>
-.toast {
-  position: fixed; bottom: 20px; right: 20px;
-  background: #333; color: #fff; padding: 10px 20px;
-  border-radius: 5px; opacity: 0.9; z-index: 9999;
-  font-family: Arial, sans-serif;
-}
-.toast-success { background: green; }
-.toast-error { background: red; }
-.toast-info { background: #333; }
-</style>
-
+  <meta charset="utf-8" />
+  <title>Submit Round – BSE Golf</title>
+  <link rel="stylesheet" href="./style.css">
 </head>
-<body class="bg-gray-100 min-h-screen">
-<header class="p-4 bg-white shadow sticky top-0 z-10">
-<div class="max-w-xl mx-auto flex items-center gap-3">
-<a class="text-blue-600" href="index.html">← Home</a>
-<h1 class="text-xl font-bold">Submit Score</h1>
-</div>
-</header>
-<main class="p-4 max-w-xl mx-auto">
-<form class="bg-white rounded-2xl p-4 shadow space-y-4" id="scoreForm">
-<input class="w-full border rounded-xl p-3" name="Player" placeholder="Player" required=""/>
-<input class="w-full border rounded-xl p-3" name="Course" placeholder="Course" required=""/>
-<input class="w-full border rounded-xl p-3" min="1" name="Score" placeholder="Score" required="" type="number"/>
-<input class="w-full border rounded-xl p-3" name="Date" required="" type="date"/>
-<input class="w-full border rounded-xl p-3" name="Handicap" placeholder="Handicap (optional)" step="0.1" type="number"/>
-<input class="w-full border rounded-xl p-3" name="Notes" placeholder="Notes (optional)"/>
-<button class="w-full bg-green-600 text-white py-3 rounded-xl" id="submitBtn">Submit</button>
-<p class="text-center text-sm text-gray-600" id="msg"></p>
-</form>
-</main>
-<script type="module">
-  import { addRoundDoc } from './config.js';
-// Default date to today
-const today = new Date().toISOString().slice(0,10);
-document.addEventListener('DOMContentLoaded', () => {
-const dateInput = document.querySelector('input[name="Date"]');
-if (dateInput && !dateInput.value) dateInput.value = today;
-});
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Submit Round</h1>
+      <div class="row">
+        <input id="course" class="input" placeholder="Course name" />
+        <input id="date" class="input" type="date" />
+        <input id="holes" class="input" type="number" min="1" max="36" placeholder="Holes" />
+        <button id="applyHoles" class="btn ghost">Apply</button>
+      </div>
+      <p class="helper">Par row is required. Leave a player's hole blank if they did not finish the round (DNF).</p>
 
+      <div id="table" class="table-wrap" style="margin-top:14px;"></div>
 
-document.getElementById('scoreForm').addEventListener('submit', async (e) => {
-e.preventDefault();
-const btn = document.getElementById('submitBtn');
-const msg = document.getElementById('msg');
-msg.textContent = '';
+      <div class="row" style="margin-top:16px;">
+        <button id="saveBtn" class="btn">Save Round</button>
+        <span id="status" class="helper"></span>
+      </div>
 
+      <div class="nav">
+        <a href="./setup.html">Back to Setup</a>
+        <a href="./leaderboard.html">Leaderboard</a>
+        <a href="./history.html">History</a>
+      </div>
+    </div>
+  </div>
 
+  <script type="module">
+    import { saveRound } from './config.js';
 
-btn.disabled = true; btn.textContent = 'Submitting…';
+    let players = [];
+    let holeCount = 18;
+    let par = [];
+    let scores = {}; // name -> array (length holeCount) possibly with blanks
+    const status = document.getElementById('status');
 
+    function getSetup(){
+      try{
+        const raw = localStorage.getItem('roundSetup');
+        if(!raw) return null;
+        return JSON.parse(raw);
+      }catch{ return null; }
+    }
 
-const formData = new FormData(e.target);
-try {
-// Use URLSearchParams to keep this a simple POST (avoids CORS preflight)
-const payload = new URLSearchParams(formData);
-const res = await addRoundDoc(payload);
-if (!res.ok) throw new Error('Network error');
-const json = await res.json().catch(() => ({ ok: true }));
-if (json.ok) {
-msg.textContent = '✅ Score submitted!';
-e.target.reset();
-// Reset date to today after clearing form
-const dateInput = document.querySelector('input[name="Date"]');
-if (dateInput && !dateInput.value) dateInput.value = today;
-} else {
-msg.textContent = 'Something went wrong. Check your Sheet headers.';
-}
-} catch (err) {
-console.error(err);
-msg.textContent = 'Error submitting score. Check your Web App URL & permissions.';
-} finally {
-btn.disabled = false; btn.textContent = 'Submit';
-}
-});
-</script>
+    function holeHeaderRow(h){
+      let cols = '<div class="cell head sticky">Row</div>';
+      for(let i=1;i<=h;i++){ cols += '<div class="cell head">H'+i+'</div>'; }
+      cols += '<div class="cell head total">Total</div>';
+      return '<div class="grid" style="grid-template-columns: 120px repeat('+h+', 1fr) 100px;">'+cols;
+    }
+
+    function endGrid(){ return '</div>'; }
+
+    function renderTable(){
+      const wrap = document.getElementById('table');
+      let html = '';
+
+      // Header
+      html += holeHeaderRow(holeCount);
+
+      // Par row
+      html += '<div class="cell sticky head">Par</div>';
+      for(let i=0;i<holeCount;i++){
+        const v = par[i] ?? '';
+        html += \`<div class="cell"><input data-par="\${i}" class="input" type="number" min="2" max="6" value="\${v}" style="width:70px;padding:6px 8px;text-align:center"></div>\`;
+      }
+      const parTotal = par.reduce((s,n)=>s+(Number(n)||0),0);
+      html += \`<div class="cell total head" id="parTotal">\${parTotal||''}</div>\`;
+
+      // Player rows
+      for(const name of players){
+        html += \`<div class="cell sticky">\${name}</div>\`;
+        const arr = scores[name] || Array(holeCount).fill('');
+        for(let i=0;i<holeCount;i++){
+          const v = (arr[i] ?? '');
+          html += \`<div class="cell">
+            <input data-player="\${name}" data-hole="\${i}" class="input" type="number" min="1" max="15" value="\${v}" style="width:70px;padding:6px 8px;text-align:center">
+          </div>\`;
+        }
+        const { total, dnf } = calcPlayerTotal(arr);
+        html += \`<div class="cell total \${dnf?'dnf':''}" id="total_\${cssSafe(name)}">\${dnf ? 'DNF' : total}</div>\`;
+      }
+
+      html += endGrid();
+      wrap.innerHTML = html;
+
+      // attach listeners
+      wrap.querySelectorAll('input[data-par]').forEach(inp => {
+        inp.addEventListener('input', () => {
+          const idx = Number(inp.getAttribute('data-par'));
+          par[idx] = inp.value ? Number(inp.value) : '';
+          updateParTotal();
+        });
+      });
+
+      wrap.querySelectorAll('input[data-player]').forEach(inp => {
+        inp.addEventListener('input', () => {
+          const name = inp.getAttribute('data-player');
+          const idx = Number(inp.getAttribute('data-hole'));
+          const val = inp.value;
+          if(!scores[name]) scores[name] = Array(holeCount).fill('');
+          scores[name][idx] = val ? Number(val) : '';
+          updatePlayerTotal(name);
+        });
+      });
+    }
+
+    function cssSafe(s){ return s.replace(/[^a-z0-9_\-]/gi, '_'); }
+
+    function updateParTotal(){
+      const pt = document.getElementById('parTotal');
+      const total = par.every(v => v !== '' && !Number.isNaN(Number(v))) 
+        ? par.reduce((a,b)=>a+Number(b),0) : '';
+      pt.textContent = total;
+    }
+
+    function calcPlayerTotal(arr){
+      // DNF if any hole is blank
+      if (arr.some(v => v === '' || v === null || Number.isNaN(Number(v)))) {
+        return { total: null, dnf: true };
+      }
+      const total = arr.reduce((s,n)=> s + Number(n), 0);
+      return { total, dnf: false };
+    }
+
+    function updatePlayerTotal(name){
+      const arr = scores[name] || [];
+      const { total, dnf } = calcPlayerTotal(arr);
+      const el = document.getElementById('total_'+cssSafe(name));
+      if(!el) return;
+      el.textContent = dnf ? 'DNF' : total;
+      el.classList.toggle('dnf', dnf);
+    }
+
+    function ensureParFilled(){
+      return par.length === holeCount && par.every(v => v !== '' && !Number.isNaN(Number(v)));
+    }
+
+    document.getElementById('applyHoles').addEventListener('click', () => {
+      const n = parseInt(document.getElementById('holes').value,10);
+      if(!(n>0 && n<=36)){ status.textContent = 'Enter holes 1–36'; return; }
+      holeCount = n;
+      par = Array(holeCount).fill('');
+      for(const name of players){
+        const prev = scores[name] || [];
+        scores[name] = [...prev.slice(0, holeCount), ...Array(Math.max(0, holeCount - prev.length)).fill('')];
+      }
+      renderTable();
+      status.textContent = 'Holes applied';
+    });
+
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      status.textContent = '';
+      if(!ensureParFilled()){ status.textContent = 'Fill all par values'; return; }
+
+      // Build Totals map and normalize Scores
+      const Totals = {};
+      const Scores = {};
+      for(const name of players){
+        const arr = (scores[name] || []).slice(0, holeCount).map(v => (v===''? '': Number(v)));
+        const { total, dnf } = calcPlayerTotal(arr);
+        Scores[name] = arr;
+        Totals[name] = dnf ? "DNF" : total;
+      }
+
+      const Course = document.getElementById('course').value.trim();
+      const DateValue = document.getElementById('date').value;
+
+      try{
+        await saveRound({ Course, DateValue, Holes: holeCount, Par, Scores, Totals });
+        status.style.color = '#1a7f37';
+        status.textContent = 'Round saved ✔';
+        localStorage.removeItem('roundSetup');
+      }catch(e){
+        console.error(e);
+        status.style.color = '#b91c1c';
+        status.textContent = 'Failed to save round';
+      }
+    });
+
+    // Initialize from setup
+    (function init(){
+      const setup = getSetup();
+      if(setup){
+        document.getElementById('course').value = setup.course || '';
+        document.getElementById('date').value = setup.date || '';
+        document.getElementById('holes').value = setup.holes || 18;
+        players = Array.isArray(setup.players) ? setup.players : [];
+        holeCount = setup.holes || 18;
+      } else {
+        players = [];
+        holeCount = 18;
+      }
+      par = Array(holeCount).fill('');
+      for(const name of players){ scores[name] = Array(holeCount).fill(''); }
+      renderTable();
+    })();
+  </script>
 </body>
 </html>
