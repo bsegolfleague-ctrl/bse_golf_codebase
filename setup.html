@@ -12,6 +12,7 @@
 
   <form id="setupForm" class="space-y-4">
     <input type="text" name="course" placeholder="Course Name" class="border p-2 w-full rounded" required>
+
     <select name="holes" class="border p-2 w-full rounded">
       <option value="9">9 Holes</option>
       <option value="18">18 Holes</option>
@@ -19,26 +20,13 @@
 
     <fieldset class="border p-2 rounded">
       <legend class="font-semibold">Select Players</legend>
-      <label><input type="checkbox" name="players" value="Josh"> Josh</label><br>
-      <label><input type="checkbox" name="players" value="Mike"> Mike</label><br>
-      <label><input type="checkbox" name="players" value="Steve"> Steve</label>
+      <div id="playerList"></div>
     </fieldset>
 
-    <button class="bg-green-600 text-white px-4 py-2 rounded w-full">Next: Enter Pars</button>
-  </form>
+    <div class="mt-4">
+      <h2 class="font-semibold mb-2">Add New Player</h2>
+      <input type="text" id="newPlayer" placeholder="Player Name" class="border p-2 rounded w-full">
+      <button type="button" id="addPlayerBtn" class="bg-blue-600 text-white px-4 py-2 rounded mt-2 w-full">Add Player</button>
+    </div>
 
-  <script>
-    document.getElementById("setupForm").addEventListener("submit", e => {
-      e.preventDefault();
-      const form = new FormData(e.target);
-      const course = form.get("course");
-      const holes = form.get("holes");
-      const players = form.getAll("players");
-
-      localStorage.setItem("roundSetup", JSON.stringify({ course, holes, players }));
-      window.location.href = "scorecard.html";
-    });
-  </script>
-</body>
-</html>
-
+    <button class="bg-green-600 text-white px-4 py-2
