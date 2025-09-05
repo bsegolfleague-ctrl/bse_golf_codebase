@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>History</title>
+  <title>Round History</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="config.js"></script>
 </head>
@@ -15,16 +15,52 @@
     fetch(APPS_SCRIPT_URL)
       .then(res => res.json())
       .then(data => {
-        data.sort((a,b) => new Date(b.Date) - new Date(a.Date));
-        const html = data.map(r => `
-          <div class="border rounded p-2 mb-2">
-            <p><strong>${r.Date}</strong> – ${r.Course} – ${r.Player}</p>
-            <p>Total: ${r.Total} (${r.ToPar >= 0 ? "+"+r.ToPar : r.ToPar})</p>
-          </div>
-        `).join("");
+        // Group rounds by date + course
+        const grouped = {};
+        data.forEach(r => {
+          const key = `${r.Date} | ${r.Course}`;
+          if(!grouped[key]) grouped[key] = [];
+          grouped[key].push(r);
+        });
+
+        // Sort by date descending
+        const sortedKeys = Object.keys(grouped).sort((a,b) => new Date(b.split(" | ")[0]) - new Date(a.split(" | ")[0]));
+
+        const html = sortedKeys.map(key => {
+          const rounds = grouped[key];
+          const tableRows = rounds.map(r => {
+            const holeScores = [];
+            for(let i=1; i<=18; i++){
+              if(r[`Score${i}`] !== undefined && r[`Score${i}`] !== "") {
+                holeScores.push(`${r[`Score${i}`]} (${r[`Par${i}`] || "-"})`);
+              }
+            }
+            return `<tr>
+              <td class="border p-2 font-semibold">${r.Player}</td>
+              <td class="border p-2">${r.Total}</td>
+              <td class="border p-2">${r.ToPar >= 0 ? "+"+r.ToPar : r.ToPar}</td>
+              <td class="border p-2">${holeScores.join(" | ")}</td>
+            </tr>`;
+          }).join("");
+
+          return `<div class="border rounded p-2 mb-4">
+            <p class="font-bold mb-2">${key}</p>
+            <table class="table-auto border-collapse w-full text-center text-sm">
+              <thead>
+                <tr>
+                  <th class="border p-2">Player</th>
+                  <th class="border p-2">Total</th>
+                  <th class="border p-2">To Par</th>
+                  <th class="border p-2">Hole-by-Hole</th>
+                </tr>
+              </thead>
+              <tbody>${tableRows}</tbody>
+            </table>
+          </div>`;
+        }).join("");
+
         document.getElementById("history").innerHTML = html;
       });
   </script>
 </body>
 </html>
-
