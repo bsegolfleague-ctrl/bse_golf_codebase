@@ -1,23 +1,27 @@
-
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>BSE Golf</title>
-  <link rel="stylesheet" href="./style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BSE Golf League</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <div class="card">
-      <h1>BSE Golf</h1>
-      <p class="helper">Modern, flexible score entry with Firebase Firestore.</p>
-      <div class="nav">
-        <a href="./setup.html">Start a Round</a>
-        <a href="./submit.html">Submit Round</a>
-        <a href="./leaderboard.html">Leaderboard</a>
-        <a href="./history.html">History</a>
-      </div>
+  <nav class="bottom-nav">
+    <a href="index.html" class="active">Home</a>
+    <a href="setup.html">Start Round</a>
+    <a href="history.html">History</a>
+    <a href="leaderboard.html">Leaderboard</a>
+  </nav>
+  <main class="landing">
+    <h1>Welcome to BSE Golf League</h1>
+    <div class="options">
+      <div class="option" onclick="location.href='setup.html'">Start Round</div>
+      <div class="option" onclick="location.href='history.html'">View History</div>
+      <div class="option" onclick="location.href='leaderboard.html'">Leaderboard</div>
+      <div class="option" onclick="location.href='course-builder.html'">Manage Courses</div>
     </div>
-  </div>
+  </main>
+  <script src="firebase.js"></script>
 </body>
 </html>
