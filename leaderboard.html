@@ -7,23 +7,26 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="config.js"></script>
 </head>
-<body class="bg-white p-4">
-  <h1 class="text-2xl font-bold mb-4">Leaderboard</h1>
-  <table class="table-auto border-collapse w-full text-center text-sm">
-    <thead>
-      <tr>
-        <th class="border p-2">Player</th>
-        <th class="border p-2">Rounds</th>
-        <th class="border p-2">Avg Score</th>
-        <th class="border p-2">Avg ToPar</th>
-        <th class="border p-2">Best Score</th>
-      </tr>
-    </thead>
-    <tbody id="board"></tbody>
-  </table>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center p-6">
+
+  <h1 class="text-3xl font-bold text-gray-800 mb-6">Leaderboard</h1>
+
+  <div class="w-full max-w-4xl overflow-x-auto bg-white p-4 rounded-2xl shadow-lg">
+    <table class="table-auto border-collapse w-full text-center text-sm min-w-max">
+      <thead>
+        <tr class="bg-gray-100 text-gray-700 font-semibold">
+          <th class="border p-2">Player</th>
+          <th class="border p-2">Rounds</th>
+          <th class="border p-2">Avg Score</th>
+          <th class="border p-2">Avg ToPar</th>
+          <th class="border p-2">Best Score</th>
+        </tr>
+      </thead>
+      <tbody id="board"></tbody>
+    </table>
+  </div>
 
   <script>
-    // Load all players from localStorage
     const historicalPlayers = JSON.parse(localStorage.getItem("players")) || [];
 
     fetch(APPS_SCRIPT_URL)
@@ -31,12 +34,10 @@
       .then(data => {
         const players = {};
 
-        // Initialize all players, even if they don't have rounds yet
         historicalPlayers.forEach(p => {
           players[p] = { rounds: 0, total: 0, totalToPar: 0, best: Infinity };
         });
 
-        // Process existing rounds from the sheet
         data.forEach(r => {
           const p = r.Player;
           if(!players[p]) players[p] = { rounds: 0, total: 0, totalToPar: 0, best: Infinity };
@@ -46,12 +47,11 @@
           players[p].best = Math.min(players[p].best, Number(r.Total) || Infinity);
         });
 
-        // Build leaderboard HTML
         const rows = Object.entries(players).map(([name, stats]) => {
           const avg = stats.rounds ? (stats.total / stats.rounds).toFixed(1) : "-";
           const avgToPar = stats.rounds ? (stats.totalToPar / stats.rounds).toFixed(1) : "-";
           const best = stats.best !== Infinity ? stats.best : "-";
-          return `<tr>
+          return `<tr class="hover:bg-gray-50 transition-colors">
             <td class="border p-2 font-semibold">${name}</td>
             <td class="border p-2">${stats.rounds}</td>
             <td class="border p-2">${avg}</td>
@@ -63,5 +63,6 @@
         document.getElementById("board").innerHTML = rows;
       });
   </script>
+
 </body>
 </html>
