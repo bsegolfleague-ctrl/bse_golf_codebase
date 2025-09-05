@@ -11,34 +11,39 @@
   <h1 class="text-2xl font-bold mb-4">Setup Round</h1>
 
   <form id="setupForm" class="space-y-4">
+    <!-- Course Name -->
     <input type="text" name="course" placeholder="Course Name" class="border p-2 w-full rounded" required>
 
+    <!-- Number of Holes -->
     <select name="holes" class="border p-2 w-full rounded">
       <option value="9">9 Holes</option>
       <option value="18">18 Holes</option>
     </select>
 
+    <!-- Player Selection -->
     <fieldset class="border p-2 rounded">
       <legend class="font-semibold">Select Players</legend>
-      <div id="playerList"></div>
+      <div id="playerList"></div> <!-- Dynamic JS fills this -->
     </fieldset>
 
+    <!-- Add New Player -->
     <div class="mt-4">
       <h2 class="font-semibold mb-2">Add New Player</h2>
       <input type="text" id="newPlayer" placeholder="Player Name" class="border p-2 rounded w-full">
       <button type="button" id="addPlayerBtn" class="bg-blue-600 text-white px-4 py-2 rounded mt-2 w-full">Add Player</button>
     </div>
 
+    <!-- Submit Button -->
     <button class="bg-green-600 text-white px-4 py-2 rounded w-full mt-4">Next: Enter Pars</button>
   </form>
 
   <script>
-    // Load historical players from localStorage or default list
-    let historicalPlayers = JSON.parse(localStorage.getItem("players")) || ["Josh", "Mike", "Steve"];
+    // Load historical players from localStorage or start empty
+    let historicalPlayers = JSON.parse(localStorage.getItem("players")) || [];
 
     function renderPlayers() {
       const container = document.getElementById("playerList");
-      container.innerHTML = ""; // clear
+      container.innerHTML = ""; // Clear previous
       historicalPlayers.forEach(player => {
         const label = document.createElement("label");
         label.className = "block mb-1";
@@ -47,6 +52,7 @@
       });
     }
 
+    // Add new player
     document.getElementById("addPlayerBtn").addEventListener("click", () => {
       const newPlayer = document.getElementById("newPlayer").value.trim();
       if(newPlayer && !historicalPlayers.includes(newPlayer)) {
@@ -57,9 +63,10 @@
       }
     });
 
+    // Initial render
     renderPlayers();
 
-    // On form submit
+    // Handle form submit
     document.getElementById("setupForm").addEventListener("submit", e => {
       e.preventDefault();
       const form = new FormData(e.target);
@@ -72,7 +79,10 @@
         return;
       }
 
+      // Save setup for scorecard
       localStorage.setItem("roundSetup", JSON.stringify({ course, holes, players }));
+
+      // Go to scorecard page
       window.location.href = "scorecard.html";
     });
   </script>
