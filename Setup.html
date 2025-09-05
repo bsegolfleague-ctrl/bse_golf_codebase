@@ -1,1 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Setup Round</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="config.js"></script>
+</head>
+<body class="bg-white p-4">
+  <h1 class="text-2xl font-bold mb-4">Setup Round</h1>
+
+  <form id="setupForm" class="space-y-4">
+    <input type="text" name="course" placeholder="Course Name" class="border p-2 w-full rounded" required>
+    <select name="holes" class="border p-2 w-full rounded">
+      <option value="9">9 Holes</option>
+      <option value="18">18 Holes</option>
+    </select>
+
+    <fieldset class="border p-2 rounded">
+      <legend class="font-semibold">Select Players</legend>
+      <label><input type="checkbox" name="players" value="Josh"> Josh</label><br>
+      <label><input type="checkbox" name="players" value="Mike"> Mike</label><br>
+      <label><input type="checkbox" name="players" value="Steve"> Steve</label>
+    </fieldset>
+
+    <button class="bg-green-600 text-white px-4 py-2 rounded w-full">Next: Enter Pars</button>
+  </form>
+
+  <script>
+    document.getElementById("setupForm").addEventListener("submit", e => {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      const course = form.get("course");
+      const holes = form.get("holes");
+      const players = form.getAll("players");
+
+      localStorage.setItem("roundSetup", JSON.stringify({ course, holes, players }));
+      window.location.href = "scorecard.html";
+    });
+  </script>
+</body>
+</html>
 
