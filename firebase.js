@@ -1,8 +1,12 @@
-// Firebase initialization
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+// Firebase v10 (modular) via CDN
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc,
+  onSnapshot, query, orderBy, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
-const firebaseConfig = {
+// --- Your project's client config (safe to expose) ---
+export const firebaseConfig = {
   apiKey: "AIzaSyA8fRBeMT7KJm5gDUORTxo-BiV47RVLTek",
   authDomain: "bse-golf-league.firebaseapp.com",
   projectId: "bse-golf-league",
@@ -13,3 +17,9 @@ const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
+
+// re-export Firestore helpers so other modules can import just from ./firebase.js
+export {
+  collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc,
+  onSnapshot, query, orderBy, serverTimestamp
+};

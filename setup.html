@@ -1,95 +1,105 @@
-
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="utf-8" />
-  <title>Setup Round – BSE Golf</title>
-  <link rel="stylesheet" href="./style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Start Round • BSE Golf</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
+    <div class="header">
+      <div class="title">Start a Round</div>
+      <div class="helper">Pick a course — pars auto-fill later</div>
+    </div>
+
     <div class="card">
-      <h1>Setup Round</h1>
       <div class="row">
-        <input id="course" class="input" placeholder="Course name (required)" />
-        <input id="date" class="input" type="date" />
-        <input id="holes" class="input" type="number" min="1" max="36" placeholder="Number of holes (e.g., 18)" />
+        <div>
+          <label>Course</label>
+          <select id="courseSelect"></select>
+        </div>
+        <div>
+          <label>Holes</label>
+          <input id="holesPreview" type="text" disabled placeholder="—" />
+        </div>
       </div>
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button id="continueBtn">Continue</button>
+        <button class="ghost" onclick="location.href='courses.html'">Manage Courses</button>
+      </div>
+    </div>
 
-      <h2>Players</h2>
-      <div id="players" class="row"></div>
-      <div class="row" style="margin-top:8px;">
-        <input id="newPlayer" class="input" placeholder="Add new player name" />
-        <button id="addPlayerBtn" class="btn">Add Player</button>
-      </div>
-
-      <div class="row" style="margin-top:16px;">
-        <button id="startBtn" class="btn">Start Round</button>
-        <span id="status" class="helper"></span>
-      </div>
-
-      <div class="nav">
-        <a href="./index.html">Home</a>
-        <a href="./submit.html">Go to Submit</a>
-      </div>
+    <div class="card" style="margin-top:14px;">
+      <div class="title" style="font-size:16px;">Par Preview</div>
+      <div id="pars" class="holes-grid"></div>
     </div>
   </div>
 
+  <nav class="bottom-nav">
+    <a href="index.html"><span class="icon">🏠</span>Home</a>
+    <a href="setup.html" class="active"><span class="icon">⛳</span>Start</a>
+    <a href="history.html"><span class="icon">📜</span>History</a>
+    <a href="leaderboard.html"><span class="icon">🏆</span>Leaders</a>
+  </nav>
+
   <script type="module">
-    import { getPlayers, addPlayer } from './config.js';
-    const playersWrap = document.getElementById('players');
-    const status = document.getElementById('status');
+    import { applyTheme, setActiveNav, toast, $, $all } from './common.js';
+    import { db, collection, onSnapshot, query, orderBy, doc, getDoc } from './firebase.js';
+    applyTheme(); setActiveNav();
 
-    function chip(name){
-      const id = `p_${name.replace(/\s+/g,'_')}`;
-      return \`
-        <label class="badge" style="cursor:pointer;">
-          <input type="checkbox" id="\${id}" value="\${name}" style="margin-right:6px;"> \${name}
-        </label>
-      \`;
-    }
+    const sel = $('#courseSelect');
+    const parsGrid = $('#pars');
+    const holesPreview = $('#holesPreview');
 
-    async function loadPlayers(){
-      playersWrap.innerHTML = '<span class="helper">Loading players…</span>';
-      try{
-        const list = await getPlayers();
-        playersWrap.innerHTML = list.map(p => chip(p.name)).join('');
-      }catch(e){
-        console.error(e);
-        playersWrap.innerHTML = '<span style="color:#b91c1c">Failed to load players</span>';
+    const q = query(collection(db, 'courses'), orderBy('createdAt','desc'));
+    let courses = [];
+    onSnapshot(q, (snap) => {
+      courses = [];
+      sel.innerHTML = '';
+      snap.forEach(d => {
+        const c = { id: d.id, ...d.data() };
+        courses.push(c);
+      });
+      if (!courses.length) {
+        sel.innerHTML = '<option value="">No courses yet</option>';
+        parsGrid.innerHTML = '<div class="helper">Create a course first.</div>';
+        return;
       }
-    }
-
-    document.getElementById('addPlayerBtn').addEventListener('click', async () => {
-      const name = document.getElementById('newPlayer').value.trim();
-      if(!name){ status.textContent = 'Enter a player name'; return; }
-      try{
-        await addPlayer(name);
-        document.getElementById('newPlayer').value='';
-        await loadPlayers();
-        status.textContent = 'Player added';
-      }catch(e){
-        status.textContent = 'Failed to add player';
-        console.error(e);
-      }
+      courses.forEach((c, idx) => {
+        const o = document.createElement('option');
+        o.value = c.id;
+        o.textContent = c.name;
+        sel.appendChild(o);
+      });
+      updatePreview();
     });
 
-    document.getElementById('startBtn').addEventListener('click', () => {
-      const course = document.getElementById('course').value.trim();
-      const date = document.getElementById('date').value; // yyyy-mm-dd
-      const holes = parseInt(document.getElementById('holes').value,10);
-      const selected = [...document.querySelectorAll('#players input[type=checkbox]:checked')].map(i => i.value);
+    function updatePreview() {
+      const id = sel.value || (courses[0]?.id || '');
+      sel.value = id;
+      const course = courses.find(x => x.id === id);
+      if (!course) return;
+      holesPreview.value = String(course.holes.length);
+      parsGrid.innerHTML = '';
+      (course.holes || []).forEach((par, i) => {
+        const div = document.createElement('div');
+        div.className = 'hole';
+        div.innerHTML = \`
+          <label>Hole \${i+1}</label>
+          <input type="number" disabled value="\${par}" />
+        \`;
+        parsGrid.appendChild(div);
+      });
+      // remember selection for scorecard
+      localStorage.setItem('selectedCourseId', id);
+    }
 
-      if(!course){ status.textContent = 'Course is required'; return; }
-      if(!(holes > 0)){ status.textContent = 'Enter number of holes'; return; }
-      if(selected.length === 0){ status.textContent = 'Select at least one player'; return; }
-
-      const payload = { course, date, holes, players: selected }; // keep order selected
-      localStorage.setItem('roundSetup', JSON.stringify(payload));
-      status.textContent = 'Saved. Open Submit Round.';
+    sel.addEventListener('change', updatePreview);
+    document.getElementById('continueBtn').addEventListener('click', () => {
+      if (!sel.value) return toast('Please choose a course');
+      location.href = 'scorecard.html';
     });
-
-    loadPlayers();
   </script>
 </body>
 </html>

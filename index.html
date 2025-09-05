@@ -1,27 +1,61 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>BSE Golf League</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <nav class="bottom-nav">
-    <a href="index.html" class="active">Home</a>
-    <a href="setup.html">Start Round</a>
-    <a href="history.html">History</a>
-    <a href="leaderboard.html">Leaderboard</a>
-  </nav>
-  <main class="landing">
-    <h1>Welcome to BSE Golf League</h1>
-    <div class="options">
-      <div class="option" onclick="location.href='setup.html'">Start Round</div>
-      <div class="option" onclick="location.href='history.html'">View History</div>
-      <div class="option" onclick="location.href='leaderboard.html'">Leaderboard</div>
-      <div class="option" onclick="location.href='course-builder.html'">Manage Courses</div>
+  <div class="container">
+    <div class="header">
+      <div class="title">BSE Golf League</div>
+      <button class="kbd" id="themeBtn">Dark / Light</button>
     </div>
-  </main>
-  <script src="firebase.js"></script>
+    <div class="grid">
+      <div class="bubble" onclick="location.href='setup.html'">
+        <div class="bubble-icon">⛳</div>
+        <div>
+          <div class="bubble-title">Start Round</div>
+          <div class="bubble-desc">Pick course & players</div>
+        </div>
+      </div>
+      <div class="bubble" onclick="location.href='leaderboard.html'">
+        <div class="bubble-icon">🏆</div>
+        <div>
+          <div class="bubble-title">Leaderboard</div>
+          <div class="bubble-desc">Wins & averages</div>
+        </div>
+      </div>
+      <div class="bubble" onclick="location.href='history.html'">
+        <div class="bubble-icon">📜</div>
+        <div>
+          <div class="bubble-title">History</div>
+          <div class="bubble-desc">Past rounds & DNF</div>
+        </div>
+      </div>
+      <div class="bubble" onclick="location.href='courses.html'">
+        <div class="bubble-icon">🛠️</div>
+        <div>
+          <div class="bubble-title">Course Builder</div>
+          <div class="bubble-desc">Create & edit courses</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <a href="index.html" class="active"><span class="icon">🏠</span>Home</a>
+    <a href="setup.html"><span class="icon">⛳</span>Start</a>
+    <a href="history.html"><span class="icon">📜</span>History</a>
+    <a href="leaderboard.html"><span class="icon">🏆</span>Leaders</a>
+  </nav>
+
+  <script type="module">
+    import { applyTheme, toggleTheme, setActiveNav } from './common.js';
+    applyTheme();
+    setActiveNav();
+    document.getElementById('themeBtn').addEventListener('click', toggleTheme);
+  </script>
 </body>
 </html>

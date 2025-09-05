@@ -1,72 +1,19 @@
-
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>History – BSE Golf</title>
-  <link rel="stylesheet" href="./style.css">
-</head>
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>History • BSE Golf</title><link rel="stylesheet" href="style.css"></head>
 <body>
   <div class="container">
-    <div class="card">
-      <h1>Round History</h1>
-      <div id="list"></div>
-      <div class="nav">
-        <a href="./index.html">Home</a>
-        <a href="./leaderboard.html">Leaderboard</a>
-      </div>
-    </div>
+    <div class="header"><div class="title">History</div><div class="helper">Rounds will appear here</div></div>
+    <div class="card"><div class="helper">Coming next after Course Builder.</div></div>
   </div>
-
+  <nav class="bottom-nav">
+    <a href="index.html"><span class="icon">🏠</span>Home</a>
+    <a href="setup.html"><span class="icon">⛳</span>Start</a>
+    <a href="history.html" class="active"><span class="icon">📜</span>History</a>
+    <a href="leaderboard.html"><span class="icon">🏆</span>Leaders</a>
+  </nav>
   <script type="module">
-    import { getRounds } from './config.js';
-    const list = document.getElementById('list');
-
-    function fmtDate(d){
-      if(!d) return '-';
-      const dt = new Date(d);
-      return dt.toLocaleDateString();
-    }
-
-    function card(r){
-      // Build a per-round summary: Date, Course, Holes, Par sum, player totals (DNF shown as DNF only)
-      const parTotal = Array.isArray(r.Par) ? r.Par.reduce((s,n)=>s+(Number(n)||0),0) : '';
-      let playersHtml = '';
-      const totals = r.Totals || {};
-      const names = Object.keys(totals);
-      if(names.length){
-        playersHtml = names.map(n => {
-          const val = totals[n];
-          const text = (typeof val === 'number') ? val : 'DNF';
-          const cls = (text==='DNF') ? 'dnf' : '';
-          return \`<div class="cell \${cls}" style="padding:8px 0;border-bottom:1px solid var(--line);">\${n}: <strong>\${text}</strong></div>\`;
-        }).join('');
-      } else {
-        playersHtml = '<div class="cell helper" style="padding:8px 0;">No players recorded</div>';
-      }
-
-      return \`
-        <div class="card" style="margin:14px 0;">
-          <div class="row" style="justify-content:space-between">
-            <div><strong>\${r.Course || 'Unnamed Course'}</strong> · \${fmtDate(r.Date)}</div>
-            <div class="helper">Holes: \${r.Holes} · Par: \${parTotal}</div>
-          </div>
-          <div style="margin-top:10px;border-top:1px solid var(--line);padding-top:8px;">
-            \${playersHtml}
-          </div>
-        </div>
-      \`;
-    }
-
-    (async () => {
-      try{
-        const rounds = await getRounds();
-        list.innerHTML = rounds.map(card).join('');
-      }catch(e){
-        console.error(e);
-        list.innerHTML = '<div class="helper" style="color:#b91c1c">Failed to load history</div>';
-      }
-    })();
+    import { applyTheme, setActiveNav } from './common.js'; applyTheme(); setActiveNav();
   </script>
-</body>
-</html>
+</body></html>

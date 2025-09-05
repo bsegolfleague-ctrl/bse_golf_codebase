@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Course Builder • BSE Golf</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="title">Course Builder</div>
+      <div class="helper">Create, edit, or delete courses</div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div class="row">
+        <div>
+          <label>Course Name</label>
+          <input id="courseName" type="text" placeholder="e.g., BSE Classic" />
+        </div>
+        <div>
+          <label>Holes</label>
+          <select id="holesCount">
+            <option value="9">9</option>
+            <option value="18" selected>18</option>
+            <option value="custom">Custom…</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="customCountWrap" class="row" style="margin-top:8px; display:none;">
+        <div>
+          <label>Custom hole count</label>
+          <input id="customCount" type="number" min="1" max="36" value="18" />
+        </div>
+        <div style="align-self:end;">
+          <button id="applyCustom" class="ghost">Apply</button>
+        </div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <label>Par for each hole</label>
+        <div id="holesGrid" class="holes-grid"></div>
+      </div>
+
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button id="saveCourse">Save Course</button>
+        <button id="resetForm" class="ghost">Reset</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="title" style="font-size:16px; margin-bottom:10px;">Your Courses</div>
+      <div id="courseList" class="list"></div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <a href="index.html"><span class="icon">🏠</span>Home</a>
+    <a href="setup.html"><span class="icon">⛳</span>Start</a>
+    <a href="history.html"><span class="icon">📜</span>History</a>
+    <a href="leaderboard.html"><span class="icon">🏆</span>Leaders</a>
+  </nav>
+
+  <script type="module">
+    import { applyTheme, setActiveNav, toast, $, $all } from './common.js';
+    import { db, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, serverTimestamp } from './firebase.js';
+    applyTheme(); setActiveNav();
+
+    const holesGrid = $('#holesGrid');
+    const courseName = $('#courseName');
+    const holesCount = $('#holesCount');
+    const customWrap = $('#customCountWrap');
+    const customCount = $('#customCount');
+    const applyCustom = $('#applyCustom');
+    const courseList = $('#courseList');
+
+    function renderHoles(n) {
+      holesGrid.innerHTML = '';
+      for (let i=1;i<=n;i++) {
+        const div = document.createElement('div');
+        div.className = 'hole';
+        div.innerHTML = \`
+          <label>Hole \${i}</label>
+          <input type="number" min="3" max="6" value="" placeholder="par" />
+        \`;
+        holesGrid.appendChild(div);
+      }
+    }
+    // Initial 18
+    renderHoles(18);
+
+    holesCount.addEventListener('change', () => {
+      const val = holesCount.value;
+      customWrap.style.display = val === 'custom' ? 'grid' : 'none';
+      if (val === '9' || val === '18') renderHoles(Number(val));
+    });
+    applyCustom.addEventListener('click', () => {
+      const n = Math.max(1, Math.min(36, Number(customCount.value || 18)));
+      renderHoles(n);
+    });
+
+    $('#resetForm').addEventListener('click', () => {
+      courseName.value = '';
+      holesCount.value = '18';
+      customWrap.style.display = 'none';
+      renderHoles(18);
+      toast('Form reset');
+    });
+
+    $('#saveCourse').addEventListener('click', async () => {
+      const name = courseName.value.trim();
+      if (!name) return toast('Please enter a course name');
+      const holes = $all('input', holesGrid).map(i => i.value ? Number(i.value) : null);
+      if (holes.some(v => v === null)) return toast('Please fill all par values');
+      try {
+        await addDoc(collection(db, 'courses'), {
+          name,
+          holes,
+          createdAt: serverTimestamp()
+        });
+        toast('Course saved');
+        courseName.value = '';
+        renderHoles(holes.length);
+      } catch (e) {
+        console.error(e);
+        toast('Error saving course');
+      }
+    });
+
+    // Live course list
+    const q = query(collection(db, 'courses'), orderBy('createdAt', 'desc'));
+    onSnapshot(q, (snap) => {
+      courseList.innerHTML = '';
+      snap.forEach(docSnap => {
+        const c = docSnap.data();
+        const id = docSnap.id;
+        const item = document.createElement('div');
+        item.className = 'list-item';
+        item.innerHTML = \`
+          <div style="display:flex; flex-direction:column;">
+            <strong>\${c.name}</strong>
+            <span class="helper">\${c.holes?.length || 0} holes • Par \${(c.holes||[]).reduce((a,b)=>a+(b||0),0)}</span>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button data-edit="\${id}" class="ghost">Edit</button>
+            <button data-del="\${id}" class="danger">Delete</button>
+          </div>
+        \`;
+        courseList.appendChild(item);
+
+        item.querySelector('[data-del]').addEventListener('click', async () => {
+          if (!confirm('Delete this course?')) return;
+          await deleteDoc(doc(db, 'courses', id));
+          toast('Deleted');
+        });
+
+        item.querySelector('[data-edit]').addEventListener('click', async () => {
+          // Load into form for inline edit
+          courseName.value = c.name;
+          renderHoles(c.holes.length);
+          $all('input', holesGrid).forEach((inp, idx) => inp.value = c.holes[idx]);
+          holesCount.value = 'custom';
+          customWrap.style.display = 'grid';
+          customCount.value = c.holes.length;
+          // Save will update instead of create
+          const saveBtn = document.getElementById('saveCourse');
+          saveBtn.textContent = 'Update Course';
+          const handler = async () => {
+            const name = courseName.value.trim();
+            if (!name) return toast('Please enter a course name');
+            const holes = $all('input', holesGrid).map(i => Number(i.value || 0));
+            await updateDoc(doc(db, 'courses', id), { name, holes });
+            toast('Course updated');
+            saveBtn.textContent = 'Save Course';
+            saveBtn.removeEventListener('click', handler);
+            $('#resetForm').click();
+          };
+          // avoid stacking
+          saveBtn.removeEventListener('click', handler);
+          saveBtn.addEventListener('click', handler, { once: true });
+        });
+      });
+      if (!snap.size) {
+        courseList.innerHTML = '<div class="helper">No courses yet — create your first above.</div>';
+      }
+    });
+  </script>
+</body>
+</html>
