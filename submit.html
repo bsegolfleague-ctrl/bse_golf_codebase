@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<h1 class="text-2xl font-bold text-center">🏌️ Indoor Golf League</h1>
+</header>
+
+
+<main class="p-4 space-y-6 max-w-xl mx-auto">
+<nav class="grid gap-3">
+<a href="submit.html" class="block text-center bg-green-600 text-white py-4 rounded-2xl shadow">Submit Score</a>
+<a href="leaderboard.html" class="block text-center bg-blue-600 text-white py-4 rounded-2xl shadow">Leaderboard</a>
+<a href="history.html" class="block text-center bg-slate-700 text-white py-4 rounded-2xl shadow">History</a>
+</nav>
+
+
+<section id="stats" class="grid gap-3"></section>
+</main>
+
+
+<script>
+async function loadQuickStats() {
+if (!window.CONFIG || !CONFIG.APPS_SCRIPT_URL) return;
+try {
+const res = await fetch(CONFIG.APPS_SCRIPT_URL);
+const data = await res.json();
+if (!Array.isArray(data) || data.length === 0) {
+document.getElementById('stats').innerHTML = '<p class="text-center text-gray-600">No rounds yet. Submit your first score!</p>';
+return;
+}
+
+
+// Normalize keys
+const rows = data.map(r => ({
+Date: r.Date || r.date,
+Player: r.Player || r.player,
+Course: r.Course || r.course,
+Score: Number(r.Score || r.score)
+})).filter(r => !isNaN(r.Score));
+
+
+const totalRounds = rows.length;
+const players = [...new Set(rows.map(r => r.Player))];
+
+
+// Average by player
+const byPlayer = {};
+for (const row of rows) {
+const p = row.Player || 'Unknown';
+if (!byPlayer[p]) byPlayer[p] = { total: 0, rounds: 0, best: Infinity };
+byPlayer[p].total += row.Score;
+byPlayer[p].rounds += 1;
+if (row.Score < byPlayer[p].best) byPlayer[p].best = row.Score;
+}
+const leaderboard = Object.entries(byPlayer).map(([name, s]) => ({
+name,
+rounds: s.rounds,
+avg: s.total / s.rounds,
+best: s.best
+})).sort((a,b) => a.avg - b.avg).slice(0, 3);
+
+
+const cards = [
+{ label: 'Total Rounds', value: totalRounds },
+{ label: 'Players', value: players.length }
+];
+
+
+document.getElementById('stats').innerHTML = `
+<div class="grid grid-cols-2 gap-3">
+${cards.map(c => `
+<div class="bg-white rounded-2xl p-4 shadow text-center">
+<div class="text-3xl font-bold">${c.value}</div>
+<div class="text-gray-500">${c.label}</div>
+</div>`).join('')}
+</div>
+<div class="bg-white rounded-2xl p-4 shadow">
+<h2 class="font-semibold mb-3">Top Averages</h2>
+${leaderboard.map((p, i) => `
+<div class="flex justify-between py-2 ${i ? 'border-t' : ''} border-gray-100">
+<span>${i+1}. ${p.name} (${p.rounds})</span>
+<span class="font-semibold">${p.avg.toFixed(1)}</span>
+</div>`).join('')}
+</div>`;
+} catch (err) {
+console.error(err);
+document.getElementById('stats').innerHTML = '<p class="text-center text-red-600">Could not load stats. Check your config.js URL.</p>';
+}
+}
+
+
+loadQuickStats();
+</script>
+</body>
+</html>
