@@ -1,34 +1,34 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbxTkg_UEZfQ1O_0kYvOgnyDPgSdjBvrTETbP2CjtaucqU5heJPJ1ap-cHZy4754ZDbkLw/exec";
+// Firebase + Firestore bootstrap (ES module)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// Global compatibility alias
-const APPS_SCRIPT_URL = API_URL;
+// *** Replace with your actual values if they change ***
+const firebaseConfig = {
+  apiKey: "AIzaSyA8fRBeMT7KJm5gDUORTxo-BiV47RVLTek",
+  authDomain: "bse-golf-league.firebaseapp.com",
+  projectId: "bse-golf-league",
+  storageBucket: "bse-golf-league.firebasestorage.app",
+  messagingSenderId: "821773780258",
+  appId: "1:821773780258:web:bcb982ccd19aa24761517b"
+};
 
-fetch(API_URL)
-  .then(res => res.text())  // fetch as text, not JSON directly
-  .then(text => JSON.parse(text))
-  .then(data => console.log(data))
-  .catch(err => console.error("Error fetching API:", err));
+// Initialize
+const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app);
 
-
-
-// Helper: Fetch with Retry
-async function fetchWithRetry(url, options = {}, retries = 2) {
-  for (let i = 0; i <= retries; i++) {
-    try {
-      const res = await fetch(url, options);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
-    } catch (err) {
-      if (i === retries) throw err;
-    }
-  }
+// Helpers you can import elsewhere
+export async function getRounds() {
+  const snap = await getDocs(collection(db, "rounds"));
+  const arr = [];
+  snap.forEach(doc => arr.push({ id: doc.id, ...doc.data() }));
+  return arr;
 }
 
-// Helper: Toast Notifications
-function showToast(message, type = 'info') {
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.textContent = message;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
+export async function addRoundDoc(docData) {
+  // Ensure a timestamp is present
+  if (!docData.Date) docData.Date = serverTimestamp();
+  await addDoc(collection(db, "rounds"), docData);
 }
+
+// Also expose globally for non-module inline debugging if needed
+window._firebase = { app, db };

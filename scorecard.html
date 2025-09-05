@@ -7,7 +7,7 @@
 <title>Scorecard</title>
 <script src="https://cdn.tailwindcss.com"></script>
 
-<script src="config.js"></script>
+<script type="module" src="config.js"></script>
 <style>
 .toast {
   position: fixed; bottom: 20px; right: 20px;
@@ -29,7 +29,8 @@
 <button class="w-full max-w-3xl mt-4 py-4 text-white font-semibold text-lg rounded-xl bg-gradient-to-r from-green-500 to-teal-400 shadow-lg hover:scale-105 hover:shadow-xl transition-transform duration-300" id="saveBtn">
     Save Round
   </button>
-<script>
+<script type="module">
+  import { addRoundDoc } from './config.js';
     // Load setup info from setup.html
     const setup = JSON.parse(localStorage.getItem("roundSetup"));
     if (!setup || !setup.players || setup.players.length === 0) {
@@ -93,7 +94,7 @@
       if (e.target.classList.contains("score") || e.target.classList.contains("par")) updateTotals();
     });
 
-    // Save to Google Sheet
+    // Save to Firestore
     document.getElementById("saveBtn").addEventListener("click", async () => {
       const pars = {};
       document.querySelectorAll(".par").forEach(p => pars[p.dataset.hole] = parseInt(p.value) || 0);
@@ -117,11 +118,7 @@
         payload.Total = total;
         payload.ToPar = totalPar ? total - totalPar : "";
 
-        await fetch(API_URL, {
-          method: "POST",
-          body: JSON.stringify(payload),
-          headers: { "Content-Type": "application/json" }
-        });
+        await addRoundDoc(payload);
       }
 
       alert("Round saved!");
