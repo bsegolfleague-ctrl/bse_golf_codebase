@@ -1,92 +1,83 @@
 <!DOCTYPE html>
-<h1 class="text-2xl font-bold text-center">🏌️ Indoor Golf League</h1>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Submit Score – Indoor Golf League</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script defer src="config.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+<header class="p-4 bg-white shadow sticky top-0 z-10">
+<div class="max-w-xl mx-auto flex items-center gap-3">
+<a href="index.html" class="text-blue-600">← Home</a>
+<h1 class="text-xl font-bold">Submit Score</h1>
+</div>
 </header>
 
 
-<main class="p-4 space-y-6 max-w-xl mx-auto">
-<nav class="grid gap-3">
-<a href="submit.html" class="block text-center bg-green-600 text-white py-4 rounded-2xl shadow">Submit Score</a>
-<a href="leaderboard.html" class="block text-center bg-blue-600 text-white py-4 rounded-2xl shadow">Leaderboard</a>
-<a href="history.html" class="block text-center bg-slate-700 text-white py-4 rounded-2xl shadow">History</a>
-</nav>
-
-
-<section id="stats" class="grid gap-3"></section>
+<main class="p-4 max-w-xl mx-auto">
+<form id="scoreForm" class="bg-white rounded-2xl p-4 shadow space-y-4">
+<input name="Player" placeholder="Player" class="w-full border rounded-xl p-3" required />
+<input name="Course" placeholder="Course" class="w-full border rounded-xl p-3" required />
+<input name="Score" type="number" min="1" placeholder="Score" class="w-full border rounded-xl p-3" required />
+<input name="Date" type="date" class="w-full border rounded-xl p-3" required />
+<input name="Handicap" type="number" step="0.1" placeholder="Handicap (optional)" class="w-full border rounded-xl p-3" />
+<input name="Notes" placeholder="Notes (optional)" class="w-full border rounded-xl p-3" />
+<button id="submitBtn" class="w-full bg-green-600 text-white py-3 rounded-xl">Submit</button>
+<p id="msg" class="text-center text-sm text-gray-600"></p>
+</form>
 </main>
 
 
 <script>
-async function loadQuickStats() {
-if (!window.CONFIG || !CONFIG.APPS_SCRIPT_URL) return;
-try {
-const res = await fetch(CONFIG.APPS_SCRIPT_URL);
-const data = await res.json();
-if (!Array.isArray(data) || data.length === 0) {
-document.getElementById('stats').innerHTML = '<p class="text-center text-gray-600">No rounds yet. Submit your first score!</p>';
+// Default date to today
+const today = new Date().toISOString().slice(0,10);
+document.addEventListener('DOMContentLoaded', () => {
+const dateInput = document.querySelector('input[name="Date"]');
+if (dateInput && !dateInput.value) dateInput.value = today;
+});
+
+
+document.getElementById('scoreForm').addEventListener('submit', async (e) => {
+e.preventDefault();
+const btn = document.getElementById('submitBtn');
+const msg = document.getElementById('msg');
+msg.textContent = '';
+
+
+if (!window.CONFIG || !CONFIG.APPS_SCRIPT_URL) {
+msg.textContent = 'Missing config.js URL';
 return;
 }
 
 
-// Normalize keys
-const rows = data.map(r => ({
-Date: r.Date || r.date,
-Player: r.Player || r.player,
-Course: r.Course || r.course,
-Score: Number(r.Score || r.score)
-})).filter(r => !isNaN(r.Score));
+btn.disabled = true; btn.textContent = 'Submitting…';
 
 
-const totalRounds = rows.length;
-const players = [...new Set(rows.map(r => r.Player))];
-
-
-// Average by player
-const byPlayer = {};
-for (const row of rows) {
-const p = row.Player || 'Unknown';
-if (!byPlayer[p]) byPlayer[p] = { total: 0, rounds: 0, best: Infinity };
-byPlayer[p].total += row.Score;
-byPlayer[p].rounds += 1;
-if (row.Score < byPlayer[p].best) byPlayer[p].best = row.Score;
+const formData = new FormData(e.target);
+try {
+// Use URLSearchParams to keep this a simple POST (avoids CORS preflight)
+const payload = new URLSearchParams(formData);
+const res = await fetch(CONFIG.APPS_SCRIPT_URL, { method: 'POST', body: payload });
+if (!res.ok) throw new Error('Network error');
+const json = await res.json().catch(() => ({ ok: true }));
+if (json.ok) {
+msg.textContent = '✅ Score submitted!';
+e.target.reset();
+// Reset date to today after clearing form
+const dateInput = document.querySelector('input[name="Date"]');
+if (dateInput && !dateInput.value) dateInput.value = today;
+} else {
+msg.textContent = 'Something went wrong. Check your Sheet headers.';
 }
-const leaderboard = Object.entries(byPlayer).map(([name, s]) => ({
-name,
-rounds: s.rounds,
-avg: s.total / s.rounds,
-best: s.best
-})).sort((a,b) => a.avg - b.avg).slice(0, 3);
-
-
-const cards = [
-{ label: 'Total Rounds', value: totalRounds },
-{ label: 'Players', value: players.length }
-];
-
-
-document.getElementById('stats').innerHTML = `
-<div class="grid grid-cols-2 gap-3">
-${cards.map(c => `
-<div class="bg-white rounded-2xl p-4 shadow text-center">
-<div class="text-3xl font-bold">${c.value}</div>
-<div class="text-gray-500">${c.label}</div>
-</div>`).join('')}
-</div>
-<div class="bg-white rounded-2xl p-4 shadow">
-<h2 class="font-semibold mb-3">Top Averages</h2>
-${leaderboard.map((p, i) => `
-<div class="flex justify-between py-2 ${i ? 'border-t' : ''} border-gray-100">
-<span>${i+1}. ${p.name} (${p.rounds})</span>
-<span class="font-semibold">${p.avg.toFixed(1)}</span>
-</div>`).join('')}
-</div>`;
 } catch (err) {
 console.error(err);
-document.getElementById('stats').innerHTML = '<p class="text-center text-red-600">Could not load stats. Check your config.js URL.</p>';
+msg.textContent = 'Error submitting score. Check your Web App URL & permissions.';
+} finally {
+btn.disabled = false; btn.textContent = 'Submit';
 }
-}
-
-
-loadQuickStats();
+});
 </script>
 </body>
 </html>
