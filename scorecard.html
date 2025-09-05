@@ -1,27 +1,35 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scorecard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="config.js"></script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Scorecard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script src="config.js"></script>
+<style>
+.toast {
+  position: fixed; bottom: 20px; right: 20px;
+  background: #333; color: #fff; padding: 10px 20px;
+  border-radius: 5px; opacity: 0.9; z-index: 9999;
+  font-family: Arial, sans-serif;
+}
+.toast-success { background: green; }
+.toast-error { background: red; }
+.toast-info { background: #333; }
+</style>
+
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col items-center p-4">
-
-  <h1 class="text-3xl font-bold text-gray-800 mb-6">Scorecard</h1>
-
-  <div class="w-full max-w-3xl overflow-x-auto bg-white p-4 rounded-2xl shadow-lg">
-    <div id="scorecard"></div>
-  </div>
-
-  <button id="saveBtn" class="w-full max-w-3xl mt-4 py-4 text-white font-semibold text-lg
-          rounded-xl bg-gradient-to-r from-green-500 to-teal-400 shadow-lg
-          hover:scale-105 hover:shadow-xl transition-transform duration-300">
+<h1 class="text-3xl font-bold text-gray-800 mb-6">Scorecard</h1>
+<div class="w-full max-w-3xl overflow-x-auto bg-white p-4 rounded-2xl shadow-lg">
+<div id="scorecard"></div>
+</div>
+<button class="w-full max-w-3xl mt-4 py-4 text-white font-semibold text-lg rounded-xl bg-gradient-to-r from-green-500 to-teal-400 shadow-lg hover:scale-105 hover:shadow-xl transition-transform duration-300" id="saveBtn">
     Save Round
   </button>
-
-  <script>
+<script>
     // Load setup info from setup.html
     const setup = JSON.parse(localStorage.getItem("roundSetup"));
     if (!setup || !setup.players || setup.players.length === 0) {
@@ -109,7 +117,7 @@
         payload.Total = total;
         payload.ToPar = totalPar ? total - totalPar : "";
 
-        await fetch(APPS_SCRIPT_URL, {
+        await fetch(API_URL, {
           method: "POST",
           body: JSON.stringify(payload),
           headers: { "Content-Type": "application/json" }
@@ -120,6 +128,5 @@
       window.location.href = "index.html";
     });
   </script>
-
 </body>
 </html>

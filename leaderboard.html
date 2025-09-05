@@ -1,35 +1,46 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Leaderboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="config.js"></script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Leaderboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script src="config.js"></script>
+<style>
+.toast {
+  position: fixed; bottom: 20px; right: 20px;
+  background: #333; color: #fff; padding: 10px 20px;
+  border-radius: 5px; opacity: 0.9; z-index: 9999;
+  font-family: Arial, sans-serif;
+}
+.toast-success { background: green; }
+.toast-error { background: red; }
+.toast-info { background: #333; }
+</style>
+
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col items-center p-6">
-
-  <h1 class="text-3xl font-bold text-gray-800 mb-6">Leaderboard</h1>
-
-  <div class="w-full max-w-4xl overflow-x-auto bg-white p-4 rounded-2xl shadow-lg">
-    <table class="table-auto border-collapse w-full text-center text-sm min-w-max">
-      <thead>
-        <tr class="bg-gray-100 text-gray-700 font-semibold">
-          <th class="border p-2">Player</th>
-          <th class="border p-2">Rounds</th>
-          <th class="border p-2">Avg Score</th>
-          <th class="border p-2">Avg ToPar</th>
-          <th class="border p-2">Best Score</th>
-        </tr>
-      </thead>
-      <tbody id="board"></tbody>
-    </table>
-  </div>
-
-  <script>
+<h1 class="text-3xl font-bold text-gray-800 mb-6">Leaderboard</h1>
+<div class="w-full max-w-4xl overflow-x-auto bg-white p-4 rounded-2xl shadow-lg">
+<table class="table-auto border-collapse w-full text-center text-sm min-w-max">
+<thead>
+<tr class="bg-gray-100 text-gray-700 font-semibold">
+<th class="border p-2">Player</th>
+<th class="border p-2">Rounds</th>
+<th class="border p-2">Avg Score</th>
+<th class="border p-2">Avg ToPar</th>
+<th class="border p-2">Best Score</th>
+</tr>
+</thead>
+<tbody id="board"></tbody>
+</table>
+</div>
+<script>
     const historicalPlayers = JSON.parse(localStorage.getItem("players")) || [];
 
-    fetch(APPS_SCRIPT_URL)
+    fetch(API_URL)
       .then(res => res.json())
       .then(data => {
         const players = {};
@@ -63,6 +74,5 @@
         document.getElementById("board").innerHTML = rows;
       });
   </script>
-
 </body>
 </html>

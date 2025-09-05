@@ -9,3 +9,26 @@ fetch(API_URL)
   .then(data => console.log(data))
   .catch(err => console.error("Error fetching API:", err));
 
+
+
+// Helper: Fetch with Retry
+async function fetchWithRetry(url, options = {}, retries = 2) {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const res = await fetch(url, options);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      if (i === retries) throw err;
+    }
+  }
+}
+
+// Helper: Toast Notifications
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
